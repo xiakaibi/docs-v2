@@ -11,7 +11,7 @@ menu:
 weight: 202
 ---
 
-
+for a lot of you out there, I think, maybe, you’ve taken a look at what we have, and there’s something specific to your use case that you need, or you want to make modifications to existing plugins, or something like that.
 
 ## Intro
 
@@ -33,7 +33,7 @@ weight: 202
 - Each type of input plugin has a well-defined interface that needs to be fulfilled: entire plugin architecture is built around these interfaces.
 you go in, write a few files, fulfill those interfaces, you’ll have a working plugin that does what you need it to do.
 
-### Service input plugins
+### Input plugins
 
 -  Used for receiving data or pulling data from variety of sources.
 
@@ -53,15 +53,64 @@ you go in, write a few files, fulfill those interfaces, you’ll have a working 
   - `Description`: returns one-sentence description of the input.
     - So you can easily identify what each plugin is doing in the configuration file.  <!-- verify that `description` is one of the methods -->
 
+---start tutorial---
+
+## Intro
+- Need latest version of Go
+- Don't you need Telegraf? lol
 
 
-   And then finally, there’s the gather interface, which is the accumulator that adds the metrics that the input gathers. So every time the input plugin runs, it’ll run the accumulator interface. It’ll take any metrics that it’s gathered and it’ll send them off into the rest of the Telegraf application. So let’s dive a little bit more into that and actually write an input plugin for ourselves.
+ - Demo plugin called Trig.
+ - Writes cosine and sine waves to the database.
 
-Noah Crowley 00:20:45.359 So you’ll need Go installed on your computer. Good to have the latest version. You can go ahead to goline.org, they’ve got great install guides, and you can install that there. But I think anything above 1.5 will work if you already have that installed on your machine. You need a desire to write a Telegraf plugin. So for a lot of you out there, I think, maybe, you’ve taken a look at what we have, and there’s something specific to your use case that you need, or you want to make modifications to existing plugins, or something like that. And that’s why you’re here at this webinar today. So for the example, we’re going to work on a plugin called Trig. It’s a demo plugin that we’ve created that really just writes cosine and sine waves to the database. But it’ll give you enough insight into how we fulfilled the interfaces, and what needs to be done to write an input plugin. So let’s get started. The first thing to do is actually get the source code of Telegraf. You can use Go’s built-in tooling to do this. First thing you type into your command line is “go get github.com/influxdata/telegraf.” This will pull down the source code into your Go graphs, which is your Go work space. All programming done in Go is usually done within the same work space. And these tools automatically write your call down source code and build packages within that work space so that everything you’re working on knows about each other, and knows about dependencies, and things like that.
+## Get the source code of Telegraf.
 
-Noah Crowley 00:22:32.105 So once you’ve gotten the code using “go get,” you can change directory to “GOPATH,” which will be filled in by the [inaudible] github.com/influxdata/telegraf. And then once you’re in that directory, you can create a new branch and check it out using “git checkout -b mySweetPlugin” and go ahead and type “make” after that. That’ll actually go through the build process and make sure that everything is configured correctly, and that you have all dependencies, and your environment is set up. And at the end of it, it’ll create a new Telegraf binary at GOPATH/bin/telegraf. You can run that, and you shouldn’t receive any errors when you do so. The next step is to start making the files that you’re going to be working on. So you can change to the plugins directory, and the inputs sub-directory within that. That’s where we’ll be doing most of our work. We’ll make a new directory for the plugin, called “trig”. And then within that directory, we’re going to create a new file using the “touch” command. So we type “touch trig/trig.go” and that will create a new Go file in there, to which we’ll “add boilerplate”. So once you’ve added the boilerplate, you can do “cat trig/trig.go” to make sure you put it in the right place. But this is what the boilerplate looks like. And we’ll go through this in a little bit of detail.
+You can use Go’s built-in tooling to do this.
 
-Noah Crowley 00:24:13.081 This is the Go file, or the code for the trig plugin. The first lines that you need are import statements. These are importing data from the rest of the Telegraf application, the main application, as well as some information about the various inputs. You’ll define a struct, which is the main data structure for this object, for this trig object. And then we’ll define a number of methods that get bound to that struct. So the first one is SampleConfig. We talked about that before. This is going to inject a string. So a simple, one-line description of your plugin that can be used in the configuration files. Sorry, I switched that. The SampleConfig is the actual data that’s going to go into your configuration files, and the next method description is the simple one-line description of what the plugin actually does. Finally, the last method that we need in order to fulfill this interface is the gather method. So we’ll put that in there as well. And at the end, we have a function called init, which is called a Telegraf application itself at startup. And this basically just registers the plugin that you’re working on with Telegraf, so that it knows that it exists, and that it can call it, and that it can use it. Without this init function, Telegraf wouldn’t be able to find the plugin that you’ve created. So in order for that init function to be called, Telegraf needs to know about the plugin that you’re creating. There’s a file called all.go within input/all in the plugins directory. And this just contains the list of all the plugins that have currently been contributed to Telegraf. Telegraf will scan through this list, it’ll find each of the individual plugins, and it’ll import them into the main Telegraf package. This makes sure that they can run after starup. Without this line, Telegraf will not know about your plugin, and it won’t be able to run it. So make sure that you add that.
+Type into your command line:
+``go get github.com/influxdata/telegraf``
+
+This will pull down the source code into your Go graphs, which is your Go work space. All programming done in Go is usually done within the same work space. These tools automatically write your call down source code and build packages within that work space so that everything you’re working on knows about each other, and knows about dependencies, and things like that.
+
+## Change directory to `GOPATH`
+Change directory to “GOPATH,” which will be filled in by the [inaudible] `github.com/influxdata/telegraf`.
+
+## Create a new branch from `GOPATH` directory and check it out
+
+Once you’re in that directory, you can create a new branch and check it out using `git checkout -b mySweetPlugin`.
+
+## Run a `make`
+That’ll actually go through the build process and make sure that everything is configured correctly, and that you have all dependencies, and your environment is set up. And at the end of it, it’ll create a new Telegraf binary at GOPATH/bin/telegraf.
+
+## Run the new Telegraf binary at `GOPATH/bin/telegraf`.
+
+./telegraf (or whatever)
+
+## Start making the files that you’re going to be working on.
+
+1. CD to `plugins/inputs`.
+2. Make new directory called `trig`.
+3. Within that directory, create new file using `touch` command:
+  ```
+  touch trig/trig.go
+  ```
+4. `add boilerplate` to the file above.
+5. `cat trig/trig.go` to make sure you've put it in the right place <!-- what does that mean -->
+
+## Walk through go file of boilerplate
+
+The first lines that you need are import statements. These are importing data from the rest of the Telegraf application, as well as some information about the various inputs.
+
+  - Define a `struct`, which is the main data structure for this trig object. <!-- this is one of the import statements?  -->
+  - And then we’ll define aa number of methods that get bound to that struct.
+    - `SampleConfig`.  Sorry, I switched that. The SampleConfig is the actual data that’s going to go into your configuration files, and the next method
+    - `description` is the simple one-line description of what the plugin actually does.
+    - `gather` method. So we’ll put that in there as well.
+
+Function called `init`. which is called a Telegraf application itself at startup.
+- Registers the plugin that you’re working on with Telegraf, so that it knows that it exists, and that it can call it, and that it can use it.
+- Without this init function, Telegraf wouldn’t be able to find the plugin that you’ve created.
+- In order for that init function to be called, Telegraf needs to know about the plugin that you’re creating. There’s a file called `all.go` within `input/all` in the `plugins` directory. And this just contains the list of all the plugins that have currently been contributed to Telegraf. Telegraf will scan through this list, it’ll find each of the individual plugins, and it’ll import them into the main Telegraf package. This makes sure that they can run after starup. Without this line, Telegraf will not know about your plugin, and it won’t be able to run it. So make sure that you add that.
 
 Noah Crowley 00:26:40.696 The next thing that we’re going to do is add any configuration variables that we might need. This goes back to the idea that Telegraf can dynamically construct your configuration files by aggregating the configurations for all of its plugins. So here, in this example, you have “var TrigConfig”, and within that variable, you have “amplitude = 10.0”. This will set the amplitude of the wave form that we’re generating. If this were a plugin that were accessing resources over the network, we might add a default IP address there, maybe localhost. At the very least, we would define a space for the user to add that information themselves. But localhost is usually a good way to go for networking plugins. If it’s going to be reading files from the disk, again, that information can go there. If you want, you can actually put that variable within the SampleConfig function itself. But we like to just leave it outside for stylistic purposes; it makes it a little bit easier to read. So we have the variable here. We have “amplitude = 10.0” and we’re returning that variable when the SampleConfig function is called.
 

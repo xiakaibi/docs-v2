@@ -6,36 +6,56 @@ description: >
   Add description here
 menu:
   v2_0:
-    name: Write a telegraf plugin
+    name: Write a Telegraf plugin
     parent: Use Telegraf plugins
 weight: 202
 ---
 
 
-We’ll be writing a Telegraf plugin this morning.
 
-
- Telegraf is:
+## Intro
 
  - open source
  - can act as an agent or as a collector
  - over 140 plugins. most are community contributed
  - specifically written to handle metrics that have tags, as opposed to metrics that are uniquely names-based
+- Written in Go. <will need to update with execd info>
+- And of course, if you’re writing something, if you’re working on this, you can reach out for help either on our community site, or on GitHub issues, and one of our engineers, or some of the dev op team will get in touch with you and help you with that.
 
-Written in Go. <will need to update with execd info>
+
+## Plugin architecture
+
+- Modular: functionality in Telegraf, inputting data, outputting data, whether you’re collecting it from a system, or a database, or the network. Can be easily swapped in, one for the other.
+
+- The way that we do that is using  Go interfaces. Each type of plugin has an interface associated with it.
+  - Contributing.md: detailed guide about various types of plugins and their interfaces.
+
+- Each type of input plugin has a well-defined interface that needs to be fulfilled: entire plugin architecture is built around these interfaces.
+you go in, write a few files, fulfill those interfaces, you’ll have a working plugin that does what you need it to do.
+
+### Service input plugins
+
+-  Used for receiving data or pulling data from variety of sources.
+
+- Input plugin is defined as something that is executed continuously: ex., runs every 10 seconds
+
+- As metrics come into it, it collects them and prepares them for output.
+
+- Example of what input interface looks like.
+
+- Three methods:
+  - two for generating config files
+  - `gather`: processes and receives the data.
+    - Accumulator that runs every time the input plugin runs.
+    - Takes any metrics that it's gathered and send them into rest of Telegraf application.
+  - `SampleConfig`: returns the default configuration of the input.
+    - Might include IP address if you’re reaching out to a network instance, file name if you’re processing log files, etc. <!-- verify that `SampleConfig` is one of the methods -->
+  - `Description`: returns one-sentence description of the input.
+    - So you can easily identify what each plugin is doing in the configuration file.  <!-- verify that `description` is one of the methods -->
 
 
-And of course, if you’re writing something, if you’re working on this, you can reach out for help either on our community site, or on GitHub issues, and one of our engineers, or some of the dev op team will get in touch with you and help you with that.
 
-Noah Crowley 00:12:11.309 So let’s just touch on a few examples of Telegraf plugins so that you can sort of see what’s out there and what you might end up using. We’ve got StatsD, which is really popular. A lot of places are using StatsD as a format for sending their metrics either from their applications or from other collection agents. If you’ve instrumented your application, and you’re sending StatsD information, StatsD metrics out of it, you can just drop in Telegraf and place the StatsD, and you can get to work. Postgres, really popular database. We support that. It pulls information from the built-in PG Stats database, and the pg_stat_bgwriter views. We support Apache. Again, super popular. Collecting data from the /server-status?auto endpoint and storing it in InfluxDB, or your time series database. win_perf_counters are in there, for those Windows users. So you can gather performance information about Windows machines. We also, of course, have built-in collections for Linux and Unix-based machines as well.
-
-Noah Crowley 00:13:21.059 Couple of more Telegraf plugins. One thing that’s really popular right now is Prometheus. We can happily expose any of our metrics in a Prometheus format. So the prometheus_client is an output plugin that creates an endpoint. It functions the same way that any Prometheus metrics endpoint would work. If you already have a Prometheus starter, you can immediately start scrapping metrics from that. The Histogram plugin is an aggregator. So I wanted to throw in one example of those. But as metrics are coming in, this will allow you to compute histograms for that data containing the counts of filed values within various ranges. We’ve got an Nginx plugin along the same lines as Apache. And of course, we’re working on something for Kubernetes. So this plugin is still, currently, in the experimental changes, but we’re putting a lot of effort into it. It talks to the Kubelet API using the /stats/summary endpoint. And the reason it’s experimental is because of some of the used patters that you see with something like Kubernetes, is where you’re bringing up a lot of ephemeral containers, you’re spinning them up, you’re killing them. Maybe somebody is bringing up an entire dev environment, something like that. So you quickly see in the number of metrics and series that you’re collecting start to balloon. That’s the benefit of Kubernetes, is having the ability to do that kind of ephemeral workloads. But it does post some challenges for storing those metrics in your databases. I know, if you’re using some of the hosted solutions that only provide a certain number of metrics per plan, you can quickly eat through those if you’re using something like Kubernetes is generating a lot of ephemeral series. So as we work on this and get it out there, I think this is going to be really valuable for any of you who are starting to play with orchestrators and containers at a significant scale.
-
-Noah Crowley 00:15:28.210 If you’re looking to install it, you can download the binaries at influxdata.com. Telegraf has the built-in ability to generate a sample configuration, so that’s the example code you see here. We’re calling Telegraf, we’re telling it to generate a SampleConfig using the input filter haproxy and an output of influxdb. We’re exporting that to a file, and then we’re launching Telegraf using that configuration. That file has our configuration. Telegraf normally runs as a Linux service. So once you’ve created that configuration, if you store it in actelegraf, telegraf.com, you can just start throwing in service using starters Telegraf. As an aside, if you go to our website in the Telegraf documentation, you can actually find more specific guides for individual oases that are out there. So if you’re on Ubuntu, if you’re running Red Hat, if you’re running Mac OS 10, we have packages available in a large number of package managers. So if you are on one of these operating systems, just working as a developer, the package manager is probably the quickest way to get up and running. So OS 10, it’s as simple as installing Homebrew, updating and install Telegraf. But the binaries will work regardless of which system you’re on or what you’re working with.
-
-Noah Crowley 00:17:03.182 So I’ll talk really quickly about the plugin architecture of Telegraf. Like I mentioned before, Telegraf was built with the idea of plugins, from the very beginning. The functionality in Telegraf, inputting data, outputting data, whether you’re collecting it from a system, or a database, or the network, these things are very modular. They can be easily swapped in, one for the other. And the way that we do that is using interfaces; Go interfaces. So each type of plugin has an interface associated with it. If you go to the Git repo, there’s a file in there called contributing.md, which actually has a really great detailed guide about contributing plugins back to our repo, back to the application. And within this guide, it goes over the various types of plugins and their interfaces. So we have input plugins, which are used for receiving data or pulling data from variety of sources. They have a well-defined interface that needs to be fulfilled. We can also have service input plugins. So an input plugin is defined as something that is executed continuously. So once every 10 seconds, or something like that, the input plugin, or the service input plugin runs continuously. So it’s always running. As metrics come into it, it collects them and prepares them for output. We have output plugins. Again, there’s our simple interface that you can take a look at, and we’ll touch in more detail on the interfaces when we get into the demo, but this is just to give you an overview. This is, sort of, the output example interface. We also have processor plugins, which has an interface and aggregator plugins which have an interface. So the entire plugin architecture is defined around these interfaces. And as long as you go in, write a few files, fulfill those interfaces, you’ll have a working plugin that does what you need it to do.
-
-Noah Crowley 00:19:16.597 So for the input interface, in particular, this is what it looks like. There’s a number of methods, but the only one that really does anything, in terms of processing or receiving the data, is down here at the bottom, which is the gather method. The other two are used for generating your config files, SampleConfig will return the default configuration of the input. So that might include something like a IP address, if you’re reaching out to a network instance. It might include a file name if you’re processing log files, or something like that. Description returns a one-sentence description of the input. So if we’re doing an Apache plugin, then it’ll talk, “Hey. This is the Apache plugin. We’re pulling stats from this endpoint.” Very simple. Very straightforward. But that’s so you can easily identify what each plugin is doing in the configuration file. And then finally, there’s the gather interface, which is the accumulator that adds the metrics that the input gathers. So every time the input plugin runs, it’ll run the accumulator interface. It’ll take any metrics that it’s gathered and it’ll send them off into the rest of the Telegraf application. So let’s dive a little bit more into that and actually write an input plugin for ourselves.
+   And then finally, there’s the gather interface, which is the accumulator that adds the metrics that the input gathers. So every time the input plugin runs, it’ll run the accumulator interface. It’ll take any metrics that it’s gathered and it’ll send them off into the rest of the Telegraf application. So let’s dive a little bit more into that and actually write an input plugin for ourselves.
 
 Noah Crowley 00:20:45.359 So you’ll need Go installed on your computer. Good to have the latest version. You can go ahead to goline.org, they’ve got great install guides, and you can install that there. But I think anything above 1.5 will work if you already have that installed on your machine. You need a desire to write a Telegraf plugin. So for a lot of you out there, I think, maybe, you’ve taken a look at what we have, and there’s something specific to your use case that you need, or you want to make modifications to existing plugins, or something like that. And that’s why you’re here at this webinar today. So for the example, we’re going to work on a plugin called Trig. It’s a demo plugin that we’ve created that really just writes cosine and sine waves to the database. But it’ll give you enough insight into how we fulfilled the interfaces, and what needs to be done to write an input plugin. So let’s get started. The first thing to do is actually get the source code of Telegraf. You can use Go’s built-in tooling to do this. First thing you type into your command line is “go get github.com/influxdata/telegraf.” This will pull down the source code into your Go graphs, which is your Go work space. All programming done in Go is usually done within the same work space. And these tools automatically write your call down source code and build packages within that work space so that everything you’re working on knows about each other, and knows about dependencies, and things like that.
 
@@ -67,8 +87,6 @@ Noah Crowley 00:38:13.091 The next thing to do, to make sure that the data has a
 
 Noah Crowley 00:40:00.047 A couple of other requirements, if you’re looking to submit a plugin: you’ll need a README.md file. This should provide some information about your plugin: how it works, what it’s doing, enough so that if someone’s visiting the repo and is interested in using your plugin, they can get a good idea of how it works. We’ll require your LICENSE file be in there. We’ll require you to sign our CLA, which is our contributor agreement, just so that the codes can be guaranteed to be open source, and other people can use it. And then it’s really important for us to get a sample of the output and input format for the plugin. The reason for this is that, a lot of the time, the engineers that are working on Telegraf might not be particularly familiar with the particular application, or the way that you’re collecting data. And in order to verify that the plugin is working as expected, we need some examples to compare that to. So really important that you help us out a little bit on that. We really want to grow these plugins and the community to a point which is way beyond what any of our engineers could handle on their own, and getting help from the community in terms of how the plugins are supposed to work, and how these third-party applications export data, is a really integral part of that. But if you’ve done those three things: if you’ve signed our CLA and you’ve written a plugin, then you are, at this point, ready to create a pull request. And we’ll take a look at it. You might have a few suggestions on how the plugin could be improved or made better. But you are on your way to having that be a part of our open source application.
 
-Noah Crowley 00:41:58.881 So that’s it for me today. You can follow me on Twitter, @noahcrowley. You can shoot me an email, noah@influxdata.com, if you have any questions. I think we have a bit of time now for those. I don’t know, Chris, if—
-
 Chris Churilo 00:42:09.597 Yeah. So I made a mistake on slide 25, so should we go back there and just show them how to add the properties?
 
 Noah Crowley 00:42:17.679 Sure. All right. So this is adding properties to the struct. Basically, what we need to do—let me see if I can just actually get the code open for this plugin. So again, this is the Telegraf repo. Definitely recommend checking it out. We’ve got a great contribution guide. But if you’re interested in the specifics, we’ll go into plugins, inputs. And we’ll take a look at out Trig plugin, which is actually already part of the repo.
@@ -94,4 +112,15 @@ Noah Crowley 00:48:21.789 I think the easiest thing to do with Telegraf is defin
 Chris Churilo 00:49:46.222 I think that’s really good advice. You’re right, the more you can dig into it, then the better you will understand things. I think the other bit of advice that I would offer to our attendees today is that, don’t be shy about putting in your own contributions. And one of the things that we often find is, people will fault the project and make some changes, fix some bugs, then kinda just leave it at that. And it often turns out that there’s actually someone else that had already done that. So you know, it’s always good to bring back those changes to the main branch and share the work amongst everyone else. I can’t tell you how many times that I’ve introduced people to each other that have done the same changes. You get a bit of a chuckle, but then you realize, “It could have been a lot more efficient if we just all put them into the main product.” And as Noah has mentioned, it’s a lot of fun. It’s a great way to get started. So we encourage you guys to get started. If you do get started and you do run into some issues, Noah is actually going to be holding workshops at InfluxDays in New York. So if you happen to be in town, I would recommend that you pop over and get to know him face-to-face. And then really try to stamp him with some really hard questions [laughter]. I’d really love to do that for a change. All right. We’ll wait just for a few more minutes. If there are any questions, put them in the chatter Q&A. Just as a reminder, this session was recorded. So we’ll post it later on today. And if you happen to have a really cool project that, maybe, you want to even share with us, let us know. Noah is always looking for people to join his meetup in New York City, so we’d love to ask you to come in and present your solution as well.
 
 
-Chris Churilo 00:53:04.540 That is a great story, great experience that you shared, Noah. And I really appreciate it. Fantastic job on the training, Noah. I think everybody, including myself, learned a bunch. I apologize about the little mistake that I made [laughter], the properties page; I have fixed it. I will also ask Noah, if you don’t mind, looking at the deck one more time. Once I get your blessing, I will upload it to SlideShare for you guys to take another look at, as well as the link to the recorded webinar for today’s training. So thanks, again, for joining us today. And we look forward to meeting you again at our training next week, next Thursday, or at one of our many events. Thanks, everyone, and have a great day.
+
+### Output plugins
+
+- Output example interface
+
+## Processor plugins
+
+- example interface?
+
+## Aggregator plugins  
+
+- example interface?

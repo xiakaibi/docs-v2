@@ -107,7 +107,7 @@ The first lines that you need are import statements. These are importing data fr
     - `description` is the simple one-line description of what the plugin actually does.
     - `gather` method. So we’ll put that in there as well.
 
-Function called `init`. which is called a Telegraf application itself at startup.
+## Function called `init`. which is called a Telegraf application itself at startup.
 - Registers the plugin that you’re working on with Telegraf, so that it knows that it exists, and that it can call it, and that it can use it.
 - Without this init function, Telegraf wouldn’t be able to find the plugin that you’ve created.
 - In order for that init function to be called, Telegraf needs to know about the plugin that you’re creating. There’s a file called `all.go` within `input/all` in the `plugins` directory. And this just contains the list of all the plugins that have currently been contributed to Telegraf. Telegraf will scan through this list, it’ll find each of the individual plugins, and it’ll import them into the main Telegraf package. This makes sure that they can run after starup. Without this line, Telegraf will not know about your plugin, and it won’t be able to run it. So make sure that you add that.

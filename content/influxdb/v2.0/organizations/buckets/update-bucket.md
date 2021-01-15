@@ -69,5 +69,5 @@ Valid retention policy duration units are nanoseconds (`ns`), microseconds (`us`
 influx bucket update -i <bucket-id> -r <retention period in nanoseconds>
 
 # Example
-influx bucket update -i 034ad714fdd6f000 -r 1209600000000000
+influx bucket update -i 034ad714fdd6f000 -r 1209600000000000ns
 ```
